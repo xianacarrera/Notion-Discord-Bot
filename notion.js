@@ -1,7 +1,10 @@
 const { Client } = require("@notionhq/client");
+const CONSTANTS = require('./constants');
+const util = require('./util');
 
 // Generate a new client using the integration token
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
+
 
 /* // Asynchronous function (these are fetch requests)
 async function getDatabase(){
@@ -52,6 +55,62 @@ function addTask({
     dueDate,
     creationDate,
 }) {
+    const prop = {
+        // Computed property for retrieving the ID of the title column
+        [process.env.NOTION_TASKS_ID]: {
+            title: [
+                {
+                    type: "text",
+                    text: {
+                        content: title, // The actual title text
+                    },
+                },
+            ],
+        },
+
+        // Description -> A text (rich_text) column
+        [process.env.NOTION_DESCRIPTION_ID]: {
+            rich_text: [
+                {
+                    type: "text",
+                    text: {
+                        content: description, // The actual title text
+                    },
+                },
+            ],
+        },
+
+        // Urgent -> A checkbox
+        [process.env.NOTION_URGENT_ID]: {
+            checkbox: isUrgent,
+        },
+    };
+
+    /* The following properties can be left blank if the user desires so */
+
+    // Status -> Select tag.
+    if (status.length) prop[process.env.NOTION_STATUS_ID] = {
+        select: {
+            // If the status specified does not exist, it is created
+            name: status,
+        }
+    };
+
+    // Due -> A date (YYYY-MM-DD)
+    if (dueDate.length) prop[process.env.NOTION_DUE_ID] = {
+        date: {
+            start: dueDate,
+        }
+    };
+
+    // Creation -> A date (YYYY-MM-DD)
+    if (creationDate.length) prop[process.env.NOTION_CREATION_ID] = {
+        date: {
+            start: creationDate,
+        }
+    };
+
+
     notion.pages.create({
         // database parent
         parent: {
@@ -59,58 +118,7 @@ function addTask({
         },
 
         // property values of the page. The keys are the names or IDs of the property; the values are property values.
-        properties: {
-            // Computed property for retrieving the ID of the title column
-            [process.env.NOTION_TASKS_ID]: {
-                title: [
-                    {
-                        type: "text",
-                        text: {
-                            content: title, // The actual title text
-                        },
-                    },
-                ],
-            },
-
-            // Description -> A text (rich_text) column
-            [process.env.NOTION_DESCRIPTION_ID]: {
-                rich_text: [
-                    {
-                        type: "text",
-                        text: {
-                            content: description, // The actual title text
-                        },
-                    },
-                ],
-            },
-
-            // Urgent -> A checkbox
-            [process.env.NOTION_URGENT_ID]: {
-                checkbox: isUrgent,
-            },
-
-            // Status -> Select tag.
-            [process.env.NOTION_STATUS_ID]: {
-                select: {
-                    // If the status specified does not exist, it is created
-                    name: status,
-                },
-            },
-
-            // Due -> A date (YYYY-MM-DD)
-            [process.env.NOTION_DUE_ID]: {
-                date: {
-                    start: dueDate,
-                },
-            },
-
-            // Creation -> A date (YYYY-MM-DD)
-            [process.env.NOTION_CREATION_ID]: {
-                date: {
-                    start: creationDate,
-                },
-            },
-        },
+        properties: prop
     });
 }
 
@@ -124,14 +132,10 @@ const task = {
     description: "Something something",
     isUrgent: true,
     status: "Not started",
-    dueDate: "2021-09-11",
+    dueDate: "2021-09-12",
     creationDate: "2021-01-24",
 };
 addTask(task);
-
-module.exports = {
-    addTask,
-};
 
 async function getTasks() {
     const notionPages = await notion.databases.query({
@@ -143,8 +147,8 @@ async function getTasks() {
             },
         },
         sorts: [
-            // Property on which we want to sort
             {
+                // Property on which we want to sort
                 property: process.env.NOTION_DUE_ID,
                 direction: "ascending", // Closest deadlines first
                 //TODO: filter those whose deadline has not passed
@@ -156,20 +160,75 @@ async function getTasks() {
     console.log(notionPages.results.map(fromNotionObject));
 }
 
+async function nextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+    let filterConditions = { and: [{
+        property: process.env.NOTION_DUE_ID,
+        date: {
+            on_or_after: util.currentDate(),
+        },
+    }]};
+
+    if (onlyUrgent){
+        filterConditions.and.push({
+            property: process.env.NOTION_URGENT_ID,
+            checkbox: {
+                equals: true,
+            },
+        });
+    }
+
+    if (onlyCompleted){
+        filterConditions.and.push({
+            property: process.env.NOTION_STATUS_ID,
+            select: {
+                equals: CONSTANTS.COMPLETED,
+            }
+        });
+    } else if (!showCompleted){
+        filterConditions.and.push({
+            property: process.env.NOTION_STATUS_ID,
+            select: {
+                does_not_equal: CONSTANTS.COMPLETED,
+            }
+        });
+    }
+
+    const notionPages = await notion.databases.query({
+        database_id: process.env.NOTION_DATABASE_ID,
+        filter: filterConditions,
+        sorts: [
+            {
+                // Property on which we want to sort
+                property: process.env.NOTION_DUE_ID,
+                direction: "ascending", // Closest deadlines first
+            }
+        ],
+        page_size: maxNumPags
+    });
+
+    return notionPages.results.map(fromNotionObject);
+}
+
 function fromNotionObject(notionPage) {
     const propertiesById = notionPropertiesById(notionPage.properties);
 
     return {
         id: notionPage.id,
-        task: propertiesById[process.env.NOTION_TASKS_ID].title[0].plain_text, // Title text
+        task: propertiesById[process.env.NOTION_TASKS_ID]?.title[0]?.plain_text, // Title text
         description:
-            propertiesById[process.env.NOTION_DESCRIPTION_ID].rich_text[0].text
+            propertiesById[process.env.NOTION_DESCRIPTION_ID]?.rich_text[0]?.text
                 .content,
-        isUrgent: propertiesById[process.env.NOTION_URGENT_ID].checkbox,
-        status: propertiesById[process.env.NOTION_STATUS_ID].select.name,
-        due: propertiesById[process.env.NOTION_DUE_ID].date.start,
-        creation: propertiesById[process.env.NOTION_CREATION_ID].date.start,
+        isUrgent: propertiesById[process.env.NOTION_URGENT_ID]?.checkbox,
+        status: propertiesById[process.env.NOTION_STATUS_ID]?.select.name,
+        due: propertiesById[process.env.NOTION_DUE_ID]?.date?.start,
+        creation: propertiesById[process.env.NOTION_CREATION_ID]?.date?.start,
     };
 }
 
-getTasks();
+nextTasks(false, true, false, 10);
+
+
+module.exports = {
+    addTask,
+    nextTasks
+};

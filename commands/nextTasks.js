@@ -42,8 +42,8 @@ function nextTasksEmbed(onlyUrgent, showCompleted, onlyCompleted, maxPages){
 
 module.exports = {
     name: 'nextTasks',
-    description: 'Shows the nearest coming tasks, ordered by due date. Tasks that do not have a due date are not ' +
-    'included.',
+    description: 'Displays the nearest coming tasks, ordered by due date. Tasks that do not have a due date are not ' +
+    'included. By default, completed tasks are omitted.',
     availableTo: "All users.",
     args: false,
 
@@ -83,7 +83,7 @@ module.exports = {
         const onlyCompleted = joinedArgs.includes("onlyCompleted");
         const maxPages = numbers?.length? Math.min(numbers[0], 25) : 10;
 
-        const requestedTasks = notion.nextTasks(onlyUrgent, showCompleted, onlyCompleted, maxPages);
+        const requestedTasks = notion.getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxPages);
 
         let embed = nextTasksEmbed(onlyUrgent, showCompleted, onlyCompleted, maxPages);
         await requestedTasks.then(result => embed.fields = util.tasksToEmbed(result));

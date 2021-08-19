@@ -160,7 +160,24 @@ async function getTasks() {
     console.log(notionPages.results.map(fromNotionObject));
 }
 
-async function nextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+async function getFilteredTasks(filterConditions, maxNumPags){
+    const notionPages = await notion.databases.query({
+        database_id: process.env.NOTION_DATABASE_ID,
+        filter: filterConditions,
+        sorts: [
+            {
+                // Property on which we want to sort
+                property: process.env.NOTION_DUE_ID,
+                direction: "ascending", // Closest deadlines first
+            }
+        ],
+        page_size: maxNumPags
+    });
+
+    return notionPages.results.map(fromNotionObject);
+}
+
+function getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
     let filterConditions = { and: [{
         property: process.env.NOTION_DUE_ID,
         date: {
@@ -193,20 +210,45 @@ async function nextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 
         });
     }
 
-    const notionPages = await notion.databases.query({
-        database_id: process.env.NOTION_DATABASE_ID,
-        filter: filterConditions,
-        sorts: [
-            {
-                // Property on which we want to sort
-                property: process.env.NOTION_DUE_ID,
-                direction: "ascending", // Closest deadlines first
-            }
-        ],
-        page_size: maxNumPags
-    });
+    return getFilteredTasks(filterConditions, maxNumPags);
+}
 
-    return notionPages.results.map(fromNotionObject);
+
+function getWeekTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+    let filterConditions = { and: [{
+        property: process.env.NOTION_DUE_ID,
+        date: {
+            on_or_after: util.currentDate(),
+            before: util.aWeekFromNow(),
+        },
+    }]};
+
+    if (onlyUrgent){
+        filterConditions.and.push({
+            property: process.env.NOTION_URGENT_ID,
+            checkbox: {
+                equals: true,
+            },
+        });
+    }
+
+    if (onlyCompleted){
+        filterConditions.and.push({
+            property: process.env.NOTION_STATUS_ID,
+            select: {
+                equals: CONSTANTS.COMPLETED,
+            }
+        });
+    } else if (!showCompleted){
+        filterConditions.and.push({
+            property: process.env.NOTION_STATUS_ID,
+            select: {
+                does_not_equal: CONSTANTS.COMPLETED,
+            }
+        });
+    }
+
+    return getFilteredTasks(filterConditions, maxNumPags);
 }
 
 function fromNotionObject(notionPage) {
@@ -225,10 +267,11 @@ function fromNotionObject(notionPage) {
     };
 }
 
-nextTasks(false, true, false, 10);
+getNextTasks(false, true, false, 10);
 
 
 module.exports = {
     addTask,
-    nextTasks
+    getNextTasks,
+    getWeekTasks
 };

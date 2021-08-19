@@ -1,13 +1,23 @@
 const Discord = require('discord.js');
 
-const currentDate = function(){
-    const today = new Date();
-    const dd = today.getDate() < 10? "0" + today.getDate() : today.getDate();
+const formatDate = function(day){
+    const dd = day.getDate() < 10? "0" + day.getDate() : day.getDate();
     // getMonth returns month in the [0,11] range
-    const mm = today.getMonth() + 1 < 10? "0" + (today.getMonth() + 1) : today.getMonth() + 1;   
-    const yyyy = today.getFullYear();
+    const mm = day.getMonth() + 1 < 10? "0" + (day.getMonth() + 1) : day.getMonth() + 1;   
+    const yyyy = day.getFullYear();
 
     return yyyy + "-" + mm + "-" + dd;
+}
+
+const currentDate = function(){
+    return formatDate(new Date());
+}
+
+const aWeekFromNow = function(){
+    const today = new Date();
+    const todayPlusOneWeek =  new Date(today.getTime() + 7 * 24 * 3600 * 1000);
+
+    return formatDate(todayPlusOneWeek);
 }
 
 const checkDate = function(date){
@@ -24,6 +34,12 @@ const checkDate = function(date){
 
 const tasksToEmbed = function(tasks){
     let fields = [];
+
+    if (!tasks.length){
+        fields.push({ name: "**0 results**", value: "No tasks match the specified conditions."});
+        return fields;
+    }
+
     for (let task of tasks){
         fields.push({
             name: `**${task.task}**`,
@@ -40,6 +56,7 @@ const tasksToEmbed = function(tasks){
 
 module.exports = {
     currentDate,
+    aWeekFromNow,
     checkDate,
     tasksToEmbed
 };

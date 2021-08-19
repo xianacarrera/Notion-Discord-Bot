@@ -3,10 +3,10 @@ const CONSTANTS = require('../constants');
 const commandInfo = "```asciidoc\n" +
 "[                      COMMAND LIST                      ]\n" +
 "\n" + 
-"Use " + CONSTANTS.PREFIX + "help [command name] to read about a specific command\n\n";
+"Use " + CONSTANTS.PREFIX + "helpNotion [command name] to read about a specific command\n\n";
 
 module.exports = {
-    name: 'help',
+    name: 'helpNotion',
     description: 'Shows a list with all the available commands for the Notion bot',
     availableTo: 'All users',
     execute(message, args){

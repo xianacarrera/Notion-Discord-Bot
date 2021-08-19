@@ -19,7 +19,7 @@ module.exports = {
     args: true,      // Arguments are required
 
     usage: "This command accepts the following arguments:\n" + 
-    "\t\tName :: (Required) Main column in Notion with the name of the task.\n" +
+    "\t\tTitle :: (Required) Main column in Notion with the title of the task.\n" +
     "\t\tDescription :: (Optional) Text that accompanies the task.\n" +
     "\t\tUrgent :: (Optional) A Notion checkbox. If *yes* or *y* are indicated, the checkbox will be marked. In any " +
     "other case, it will be left blank.\n" +
@@ -38,10 +38,10 @@ module.exports = {
 
     examples: "!addTask Write daily post +? This is an urgent task with a 'Not started' status due for 2021-08-06 +? " +
     "y +? Not started +? 06/08/2021 \n" +
-    "\t!addTask Call Mark +? This task only has a name and a description \n" +
-    "\t!addTask Study chemistry +? This task only has a name, a description and a 'Behind schedule' status +? " +
+    "\t!addTask Call Mark +? This task only has a title and a description \n" +
+    "\t!addTask Study chemistry +? This task only has a title, a description and a 'Behind schedule' status +? " +
     "+? Behind schedule \n" +
-    "\t!addTask Clean the sofa +? This task has a name, a description, a due date and is urgent +? yes+?+?2021-08-21",
+    "\t!addTask Clean the sofa +? This task has a title, a description, a due date and is urgent +? yes+?+?2021-08-21",
 
     execute(message, args){
         // Redefine the arguments according to the _? separator

@@ -64,7 +64,7 @@ function tasksByStatusEmbed(searchText, onlyUrgent, showCompleted, onlyCompleted
 module.exports = {
     name: "filterByStatus",
     description:
-        "Displays all the properties of the tasks whose status (the main Notion column) contains the " +
+        "Displays all the properties of the tasks whose status (the main Notion column) is equal to the " +
         "provided text. By default, completed tasks are omitted.",
     availableTo: "All users.",
     args: true,
@@ -91,7 +91,7 @@ module.exports = {
         };
 
         message.reply(
-            `I will search for tasks whose status contains "${statusText}"`
+            `I will search for tasks whose status is "${statusText}"`
         );
         message.channel.send(settingsMessage);
 
@@ -181,7 +181,7 @@ module.exports = {
                         "Settings discarded. The command execution was cancelled."
                     );
 
-                const requestedTasks = notion.getByTitle(
+                const requestedTasks = notion.getByStatus(
                     statusText,
                     onlyUrgent,
                     showCompleted,

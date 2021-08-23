@@ -245,6 +245,19 @@ function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNum
     return getFilteredTasks(filterConditions, maxNumPags);
 }
 
+function getByStatus(statusText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+    let filterConditions = { and: [{
+        property: process.env.NOTION_STATUS_ID,
+        select: {
+            equals: statusText,
+        },
+    }]};
+
+    addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
+
+    return getFilteredTasks(filterConditions, maxNumPags);
+}
+
 function fromNotionObject(notionPage) {
     const propertiesById = notionPropertiesById(notionPage.properties);
 
@@ -268,5 +281,6 @@ module.exports = {
     addTask,
     getNextTasks,
     getWeekTasks,
-    getByTitle
+    getByTitle,
+    getByStatus
 };

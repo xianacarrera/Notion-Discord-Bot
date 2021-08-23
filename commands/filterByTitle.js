@@ -23,7 +23,7 @@ let settingsMessage =
 
 function tasksByTitleEmbed(searchText, onlyUrgent, showCompleted, onlyCompleted, maxTasks) {
     const embed = new Discord.MessageEmbed()
-        .setTitle("***Filitered tasks***")
+        .setTitle("***Filitered tasks by title***")
         .setColor(0x0000ff)
         .setTimestamp();
 
@@ -86,7 +86,7 @@ module.exports = {
         let filter = (msg) => message.author === msg.author;
 
         let collectorOptions = {
-            max: 1, // Collect only 1 message
+            max: 1,      // Collect only 1 message
             time: 30000, // Wait for 30 s at most
         };
 

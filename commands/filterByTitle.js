@@ -87,7 +87,7 @@ module.exports = {
 
         let collectorOptions = {
             max: 1, // Collect only 1 message
-            time: 30000, // Wait for 15 s at most
+            time: 30000, // Wait for 30 s at most
         };
 
         message.reply(

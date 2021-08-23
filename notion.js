@@ -177,14 +177,7 @@ async function getFilteredTasks(filterConditions, maxNumPags){
     return notionPages.results.map(fromNotionObject);
 }
 
-function getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
-    let filterConditions = { and: [{
-        property: process.env.NOTION_DUE_ID,
-        date: {
-            on_or_after: util.currentDate(),
-        },
-    }]};
-
+function addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted){
     if (onlyUrgent){
         filterConditions.and.push({
             property: process.env.NOTION_URGENT_ID,
@@ -209,6 +202,17 @@ function getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10)
             }
         });
     }
+}
+
+function getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+    let filterConditions = { and: [{
+        property: process.env.NOTION_DUE_ID,
+        date: {
+            on_or_after: util.currentDate(),
+        },
+    }]};
+
+    addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
     return getFilteredTasks(filterConditions, maxNumPags);
 }
@@ -223,30 +227,20 @@ function getWeekTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10)
         },
     }]};
 
-    if (onlyUrgent){
-        filterConditions.and.push({
-            property: process.env.NOTION_URGENT_ID,
-            checkbox: {
-                equals: true,
-            },
-        });
-    }
+    addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
-    if (onlyCompleted){
-        filterConditions.and.push({
-            property: process.env.NOTION_STATUS_ID,
-            select: {
-                equals: CONSTANTS.COMPLETED,
-            }
-        });
-    } else if (!showCompleted){
-        filterConditions.and.push({
-            property: process.env.NOTION_STATUS_ID,
-            select: {
-                does_not_equal: CONSTANTS.COMPLETED,
-            }
-        });
-    }
+    return getFilteredTasks(filterConditions, maxNumPags);
+}
+
+function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+    let filterConditions = { and: [{
+        property: process.env.NOTION_TASKS_ID,
+        title: {
+            contains: searchText,
+        },
+    }]};
+
+    addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
     return getFilteredTasks(filterConditions, maxNumPags);
 }
@@ -273,5 +267,6 @@ getNextTasks(false, true, false, 10);
 module.exports = {
     addTask,
     getNextTasks,
-    getWeekTasks
+    getWeekTasks,
+    getByTitle
 };

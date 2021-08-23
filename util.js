@@ -43,11 +43,11 @@ const tasksToEmbed = function(tasks){
     for (let task of tasks){
         fields.push({
             name: `**${task.task}**`,
-            value: `* ✍️  *Description*: ${task.description}
-            * ❗ *Is urgent*: ${task.isUrgent}
-            * 📁  *Status*: ${task.status}
-            * 👁️  *Due for*: ${task.due}
-            * 🕖  *Created on*: ${task.creation}`
+            value: `• ✍️  *Description*: ${task.description}
+            • ❗ *Is urgent*: ${task.isUrgent}
+            • 📁  *Status*: ${task.status}
+            • 👁️  *Due for*: ${task.due}
+            • 🕖  *Created on*: ${task.creation}`
         });
     }
 

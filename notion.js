@@ -160,8 +160,8 @@ async function getTasks() {
     console.log(notionPages.results.map(fromNotionObject));
 }
 
-async function getFilteredTasks(filterConditions, maxNumPags){
-    const notionPages = await notion.databases.query({
+async function getFilteredTasks(filterConditions, maxNumPags, advance = false, nextCursor = null){
+    let query = {
         database_id: process.env.NOTION_DATABASE_ID,
         filter: filterConditions,
         sorts: [
@@ -172,7 +172,11 @@ async function getFilteredTasks(filterConditions, maxNumPags){
             }
         ],
         page_size: maxNumPags
-    });
+    }
+
+    if (hasMore) query.start_cursor = nextCursor;
+
+    const notionPages = await notion.databases.query(query);
 
     let result = {
         tasks: notionPages.results.map(fromNotionObject),
@@ -238,7 +242,7 @@ function getWeekTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10)
     return getFilteredTasks(filterConditions, maxNumPags);
 }
 
-function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
+function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10, advance, nextCursor){
     let filterConditions = { and: [{
         property: process.env.NOTION_TASKS_ID,
         title: {
@@ -248,7 +252,7 @@ function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNum
 
     addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
-    return getFilteredTasks(filterConditions, maxNumPags);
+    return getFilteredTasks(filterConditions, maxNumPags, advance, nextCursor);
 }
 
 function getByStatus(statusText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){

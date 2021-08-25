@@ -23,7 +23,7 @@ let settingsMessage =
 
 function tasksByStatusEmbed(searchText, onlyUrgent, showCompleted, onlyCompleted, maxTasks) {
     const embed = new Discord.MessageEmbed()
-        .setTitle("***Filitered tasks by status***")
+        .setTitle("***Filtered tasks by status***")
         .setColor(0x0000ff)
         .setTimestamp();
 
@@ -198,7 +198,7 @@ module.exports = {
                 );
 
                 await requestedTasks.then(
-                    (result) => (embed.fields = util.tasksToEmbed(result))
+                    (result) => (embed.fields = util.tasksToEmbed(result.tasks))
                 );
 
                 message.channel.send(embed);

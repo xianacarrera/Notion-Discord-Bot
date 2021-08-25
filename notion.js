@@ -174,7 +174,13 @@ async function getFilteredTasks(filterConditions, maxNumPags){
         page_size: maxNumPags
     });
 
-    return notionPages.results.map(fromNotionObject);
+    let result = {
+        tasks: notionPages.results.map(fromNotionObject),
+        hasMore: notionPages.has_more,
+        nextCursor: notionPages.next_cursor,
+    };
+
+    return result;
 }
 
 function addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted){

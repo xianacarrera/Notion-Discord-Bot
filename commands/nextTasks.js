@@ -86,7 +86,7 @@ module.exports = {
         const requestedTasks = notion.getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxPages);
 
         let embed = nextTasksEmbed(onlyUrgent, showCompleted, onlyCompleted, maxPages);
-        await requestedTasks.then(result => embed.fields = util.tasksToEmbed(result));
+        await requestedTasks.then(result => embed.fields = util.tasksToEmbed(result.tasks));
 
         message.channel.send(embed);
     },

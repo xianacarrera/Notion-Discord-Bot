@@ -1,3 +1,7 @@
+const notion = require("../notion");
+const Discord = require("discord.js");
+const util = require("../util");
+
 // Tasks are presented in groups of 10
 const groupSize = 10;
 
@@ -46,20 +50,24 @@ module.exports = {
         const titleText = args.join(" ");
 
         // The bot only reacts to the original author
-        let filter = (msg) => message.author === msg.author;
+        const filter = (msg) => message.author === msg.author;
 
-        let collectorOptions = {
+        const messageCollectorOptions = {
             max: 1, // Collect only 1 message
             time: 30000, // Wait for 30 s at most
+            errors: ["time"],
         };
 
-        CommandLoop:
-        do {
-            let embed = null;
-            let advance = false;
-            let nextCursor = null;
-            let nTasks = null;
+        let stopSearch = false;
+        let stopCollector = false;
 
+        let selectedOption = null;
+        let embed = null;
+        let advance = false;
+        let nextCursor = null;
+        let nTasks = null;
+
+        do {
             // Perform a search of the database by the title of the tasks
             // Urgent and completed tasks are not excluded
             const optionsTasks = notion.getByTitle(
@@ -72,63 +80,74 @@ module.exports = {
                 nextCursor
             );
 
-            await requestedTasks.then((result) => {
+            await optionsTasks.then((result) => {
                 advance = result.hasMore;
                 nextCursor = result.nextCursor;
-                embed = presentOptionsAsEmbed(titleText, groupSize, hasMore);
-                embed.fields = util.tasksToEmbed(result.tasks);
+                embed = presentOptionsAsEmbed(titleText, groupSize, advance);
+
+                // Prepare the embed with true as the options' argument so that emoji indexes appear
+                embed.fields = util.tasksToEmbed(result.tasks, true);
                 nTasks = result.tasks.length;
             });
 
-            message.channel.send(embed);
+            await message.channel.send(embed);
 
-            let selectedOption = null;
-            OptionCollectorLoop:
+
             do {
-                let collector = message.channel.createMessageCollector(
-                    filter,
-                    collectorOptions
-                );
+                await message.channel
+                    .awaitMessages(filter, messageCollectorOptions)
+                    .then((collected) => {
+                        // Get the first message collected. In this case, that is also the only message collected.
+                        userReply = collected.first().content.toLowerCase();
 
-                // The 'collect' event will fire whenever the collector receives input
-                collector.on("end", (collected, reason) => {
-                    if (reason === "time") {
-                        return message.channel.send(
+                        if (userReply === "cancel") {
+                            stopSearch = true;
+                            return message.channel.send(
+                                "The command was cancelled."
+                            );
+                        }
+
+                        if (advance && userReply === "next") {
+                            stopCollector = true;
+                            return message.channel.send(
+                                "Retrieving more tasks..."
+                            );
+                        }
+
+                        if (isNumeric(userReply)) {
+                            if (parseInt(userReply) < nTasks) {
+                                selectedOption = parseInt(userReply);
+                                stopSearch = true;
+                                return;
+                            } else
+                                message.channel.send(
+                                    "The selected option is out of range."
+                                );
+                        }
+
+                        let messageRequestResend =
+                            "I didn't understand your message. Try typing:\n" +
+                            "• 0-9 -> To select one of the options previously shown.\n" + 
+                            "• 'cancel' -> To stop the command's execution.";
+
+                        if (advance)
+                            messageRequestResend +=
+                                "\n" +
+                                "• 'next' -> To see the next batch of tasks.";
+
+                        message.channel.send(messageRequestResend);
+                    })
+                    .catch((collected) => {
+                        stopSearch = true;
+                        message.channel.send(
                             "Time limit (30 s) reached. The command was cancelled."
                         );
-                    }
+                    });
+                    
+            } while (!stopSearch && !stopCollector);
+        } while (!stopSearch);
 
-                    const userReply = collected.array()[0].content.toLowerCase();
-
-                    if (userReply === "cancel") {
-                        return message.channel.send(
-                            "The command was cancelled."
-                        );
-                    }
-
-                    if (hasMore && userReply === "next") {
-                        message.channel.send("Retrieving 10 more tasks...");
-                        break OptionCollectorLoop;
-                    }
-
-                    if (isNumeric(userReply)){
-                        if (!parseInt(userReply) < nTasks) {
-                            selectedOption = parseInt(userReply);
-                            break OptionCollectorLoop;
-                        }
-                        else message.channel.send("The selected option is out of range.");
-                    }
-
-                    let messageRequestResend = "I didn't understand your message. Try typing:\n" + 
-                    "• 0-9 -> To select one of the options previously shown.\n"
-                    "• 'cancel' -> To stop the command's execution.";
-
-                    if (hasMore) messageRequestResend += "\n" +
-                    "• 'next' -> To see the next batch of tasks.";
-
-                    message.channel.send(messageRequestResend);
-                });
-            } while (true);
-        } while (true);
+        // The user didn't select any option (either too much time passed or the command was cancelled)
+        if (selectedOption === null) return;
     },
 };

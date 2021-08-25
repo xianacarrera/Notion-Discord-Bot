@@ -174,7 +174,7 @@ async function getFilteredTasks(filterConditions, maxNumPags, advance = false, n
         page_size: maxNumPags
     }
 
-    if (hasMore) query.start_cursor = nextCursor;
+    if (advance) query.start_cursor = nextCursor;
 
     const notionPages = await notion.databases.query(query);
 

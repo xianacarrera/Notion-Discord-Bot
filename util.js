@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const digitEmojis = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
 
 const formatDate = function(day){
     const dd = day.getDate() < 10? "0" + day.getDate() : day.getDate();
@@ -32,7 +33,7 @@ const checkDate = function(date){
     return d.toISOString().slice(0,10) === date;
 }
 
-const tasksToEmbed = function(tasks){
+const tasksToEmbed = function(tasks, showAsOptions = false){
     let fields = [];
 
     if (!tasks.length){
@@ -40,9 +41,14 @@ const tasksToEmbed = function(tasks){
         return fields;
     }
 
-    for (let task of tasks){
+    for (let [index, task] of tasks.entries()){
+        let taskHeader = `**${task.task}**`;
+        if (showAsOptions){
+            taskHeader = `${digitEmojis[index % 10]} ` + taskHeader;
+        }
+
         fields.push({
-            name: `**${task.task}**`,
+            name: taskHeader,
             value: `• ✍️  *Description*: ${task.description}
             • ❗ *Is urgent*: ${task.isUrgent}
             • 📁  *Status*: ${task.status}

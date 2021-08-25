@@ -44,7 +44,7 @@ const tasksToEmbed = function(tasks, showAsOptions = false){
     for (let [index, task] of tasks.entries()){
         let taskHeader = `**${task.task}**`;
         if (showAsOptions){
-            taskHeader = `${digitEmojis[index % 10]} ` + taskHeader;
+            taskHeader = `${digitEmojis[index % 10]}` + "\t" + taskHeader;
         }
 
         fields.push({

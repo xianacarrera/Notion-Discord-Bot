@@ -1,10 +1,9 @@
 const { Client } = require("@notionhq/client");
-const CONSTANTS = require('./constants');
-const util = require('./util');
+const CONSTANTS = require("./constants");
+const util = require("./util");
 
 // Generate a new client using the integration token
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
-
 
 /* // Asynchronous function (these are fetch requests)
 async function getDatabase(){
@@ -89,27 +88,29 @@ function addTask({
     /* The following properties can be left blank if the user desires so */
 
     // Status -> Select tag.
-    if (status.length) prop[process.env.NOTION_STATUS_ID] = {
-        select: {
-            // If the status specified does not exist, it is created
-            name: status,
-        }
-    };
+    if (status.length)
+        prop[process.env.NOTION_STATUS_ID] = {
+            select: {
+                // If the status specified does not exist, it is created
+                name: status,
+            },
+        };
 
     // Due -> A date (YYYY-MM-DD)
-    if (dueDate.length) prop[process.env.NOTION_DUE_ID] = {
-        date: {
-            start: dueDate,
-        }
-    };
+    if (dueDate.length)
+        prop[process.env.NOTION_DUE_ID] = {
+            date: {
+                start: dueDate,
+            },
+        };
 
     // Creation -> A date (YYYY-MM-DD)
-    if (creationDate.length) prop[process.env.NOTION_CREATION_ID] = {
-        date: {
-            start: creationDate,
-        }
-    };
-
+    if (creationDate.length)
+        prop[process.env.NOTION_CREATION_ID] = {
+            date: {
+                start: creationDate,
+            },
+        };
 
     notion.pages.create({
         // database parent
@@ -118,7 +119,7 @@ function addTask({
         },
 
         // property values of the page. The keys are the names or IDs of the property; the values are property values.
-        properties: prop
+        properties: prop,
     });
 }
 
@@ -160,7 +161,12 @@ async function getTasks() {
     console.log(notionPages.results.map(fromNotionObject));
 }
 
-async function getFilteredTasks(filterConditions, maxNumPags, advance = false, nextCursor = null){
+async function getFilteredTasks(
+    filterConditions,
+    maxNumPags,
+    advance = false,
+    nextCursor = null
+) {
     let query = {
         database_id: process.env.NOTION_DATABASE_ID,
         filter: filterConditions,
@@ -169,10 +175,10 @@ async function getFilteredTasks(filterConditions, maxNumPags, advance = false, n
                 // Property on which we want to sort
                 property: process.env.NOTION_DUE_ID,
                 direction: "ascending", // Closest deadlines first
-            }
+            },
         ],
-        page_size: maxNumPags
-    }
+        page_size: maxNumPags,
+    };
 
     if (advance) query.start_cursor = nextCursor;
 
@@ -187,8 +193,13 @@ async function getFilteredTasks(filterConditions, maxNumPags, advance = false, n
     return result;
 }
 
-function addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted){
-    if (onlyUrgent){
+function addFilters(
+    filterConditions,
+    onlyUrgent,
+    showCompleted,
+    onlyCompleted
+) {
+    if (onlyUrgent) {
         filterConditions.and.push({
             property: process.env.NOTION_URGENT_ID,
             checkbox: {
@@ -197,71 +208,110 @@ function addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted){
         });
     }
 
-    if (onlyCompleted){
+    if (onlyCompleted) {
         filterConditions.and.push({
             property: process.env.NOTION_STATUS_ID,
             select: {
                 equals: CONSTANTS.COMPLETED,
-            }
+            },
         });
-    } else if (!showCompleted){
+    } else if (!showCompleted) {
         filterConditions.and.push({
             property: process.env.NOTION_STATUS_ID,
             select: {
                 does_not_equal: CONSTANTS.COMPLETED,
-            }
+            },
         });
     }
 }
 
-function getNextTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
-    let filterConditions = { and: [{
-        property: process.env.NOTION_DUE_ID,
-        date: {
-            on_or_after: util.currentDate(),
-        },
-    }]};
+function getNextTasks(
+    onlyUrgent,
+    showCompleted,
+    onlyCompleted,
+    maxNumPags = 10
+) {
+    let filterConditions = {
+        and: [
+            {
+                property: process.env.NOTION_DUE_ID,
+                date: {
+                    on_or_after: util.currentDate(),
+                },
+            },
+        ],
+    };
 
     addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
     return getFilteredTasks(filterConditions, maxNumPags);
 }
 
-
-function getWeekTasks(onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
-    let filterConditions = { and: [{
-        property: process.env.NOTION_DUE_ID,
-        date: {
-            on_or_after: util.currentDate(),
-            before: util.aWeekFromNow(),
-        },
-    }]};
+function getWeekTasks(
+    onlyUrgent,
+    showCompleted,
+    onlyCompleted,
+    maxNumPags = 10
+) {
+    let filterConditions = {
+        and: [
+            {
+                property: process.env.NOTION_DUE_ID,
+                date: {
+                    on_or_after: util.currentDate(),
+                    before: util.aWeekFromNow(),
+                },
+            },
+        ],
+    };
 
     addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
     return getFilteredTasks(filterConditions, maxNumPags);
 }
 
-function getByTitle(searchText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10, advance, nextCursor){
-    let filterConditions = { and: [{
-        property: process.env.NOTION_TASKS_ID,
-        title: {
-            contains: searchText,
-        },
-    }]};
+function getByTitle(
+    searchText,
+    onlyUrgent,
+    showCompleted,
+    onlyCompleted,
+    maxNumPags = 10,
+    advance,
+    nextCursor
+) {
+    let filterConditions = {
+        and: [
+            {
+                property: process.env.NOTION_TASKS_ID,
+                title: {
+                    contains: searchText,
+                },
+            },
+        ],
+    };
 
     addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
     return getFilteredTasks(filterConditions, maxNumPags, advance, nextCursor);
 }
 
-function getByStatus(statusText, onlyUrgent, showCompleted, onlyCompleted, maxNumPags = 10){
-    let filterConditions = { and: [{
-        property: process.env.NOTION_STATUS_ID,
-        select: {
-            equals: statusText,
-        },
-    }]};
+function getByStatus(
+    statusText,
+    onlyUrgent,
+    showCompleted,
+    onlyCompleted,
+    maxNumPags = 10
+) {
+    let filterConditions = {
+        and: [
+            {
+                property: process.env.NOTION_STATUS_ID,
+                select: {
+                    equals: statusText,
+                },
+            },
+        ],
+    };
 
     addFilters(filterConditions, onlyUrgent, showCompleted, onlyCompleted);
 
@@ -275,8 +325,8 @@ function fromNotionObject(notionPage) {
         id: notionPage.id,
         task: propertiesById[process.env.NOTION_TASKS_ID]?.title[0]?.plain_text, // Title text
         description:
-            propertiesById[process.env.NOTION_DESCRIPTION_ID]?.rich_text[0]?.text
-                .content,
+            propertiesById[process.env.NOTION_DESCRIPTION_ID]?.rich_text[0]
+                ?.text.content,
         isUrgent: propertiesById[process.env.NOTION_URGENT_ID]?.checkbox,
         status: propertiesById[process.env.NOTION_STATUS_ID]?.select.name,
         due: propertiesById[process.env.NOTION_DUE_ID]?.date?.start,
@@ -284,27 +334,24 @@ function fromNotionObject(notionPage) {
     };
 }
 
-async function updateTask(pageId, property){
+async function updateTask(pageId, property) {
     const result = await notion.pages.update({
         page_id: pageId,
-        properties: property
+        properties: property,
     });
 
     return fromNotionObject(result);
 }
 
-getNextTasks(false, true, false, 10);
-updateTask('44af3156-a97e-48bf-a979-c5fa8bfa72d1', {[process.env.NOTION_TASKS_ID]: {
-    title: [
-        {
-            type: "text",
-            text: {
-                content: "Estoy actualizado", // The actual title text
-            },
-        },
-    ],
-}});
+async function deleteTask(pageId) {
+    const result = await notion.pages.update({
+        page_id: pageId,
+        archived: true
+    });
+    console.log(result);
+}
 
+getNextTasks(false, true, false, 10);
 
 module.exports = {
     addTask,
@@ -312,5 +359,6 @@ module.exports = {
     getWeekTasks,
     getByTitle,
     getByStatus,
-    updateTask
+    updateTask,
+    deleteTask,
 };

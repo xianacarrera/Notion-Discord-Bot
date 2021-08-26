@@ -34,7 +34,7 @@ const messageCollectorOptions = {
     errors: ["time"],
 };
 
-function presentOptionsAsEmbed(titleText, groupSize, hasMore) {
+function presentOptionsAsEmbed(hasMore) {
     const embed = new Discord.MessageEmbed()
         .setTitle("***Options***")
         .setColor(0x0000ff)
@@ -42,7 +42,8 @@ function presentOptionsAsEmbed(titleText, groupSize, hasMore) {
 
     let description =
         `Showing ${groupSize} tasks whose title contains the provided text. They appear in alphabetical ` +
-        `order. To select one of them in order to modify it, reply with only its number (0-9). To cancel, type 'exit'.`;
+        `order. To select one of them in order to modify it, reply with only its number (0-9). To cancel, ` +
+        `type 'cancel'.`;
 
     if (hasMore)
         description +=
@@ -210,14 +211,14 @@ module.exports = {
     usage:
         "This command uses the following structure: !modifyTask <titleText>\n" +
         "After the previous message, the bot will reply showing which tasks contain <titleText> in their title. " +
-        "The results will be ordered alphabetically by their title. 25 results will be shown at most. " +
+        "The results will be ordered alphabetically by their title. 10 results will be shown at most. " +
         "Then, the bot will ask to choose an option",
     examples: "",
 
     async execute(message, args) {
         let embed = null; // Embed where the results of the search will be displayed
         let stopSearch = false; // Control of the notion search loop
-        let stopCollector = false; // Control of the collector for user reponse loop
+        let stopCollector = false; // Control of the collector for user response loop
         let retrievedTasks = null; // Tasks returned by the search
         let advance = false; // Boolean -> false if the tasks shown include the end of the list, true otherwise
         let nextCursor = null; // Cursor used to retrieve the next page of results when the user can advance
@@ -248,7 +249,7 @@ module.exports = {
                 nextCursor = result.nextCursor; // Cursor pointing to the next page of the results when advance === true
 
                 // Prepare the header of the embed
-                embed = presentOptionsAsEmbed(titleText, groupSize, advance);
+                embed = presentOptionsAsEmbed(advance);
                 // Prepare the embed with true as the options' argument so that emoji indexes appear
                 embed.fields = util.tasksToEmbed(result.tasks, true);
 

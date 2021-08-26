@@ -5,28 +5,6 @@ const util = require("../util");
 // Tasks are presented in groups of 10
 const groupSize = 10;
 
-// Check if a string is a single digit
-function isNumeric(value) {
-    return /\b([0-9])\b/.test(value);
-}
-
-function presentOptionsAsEmbed(titleText, groupSize, hasMore) {
-    const embed = new Discord.MessageEmbed()
-        .setTitle("***Options***")
-        .setColor(0x0000ff)
-        .setTimestamp();
-
-    let description =
-        `Showing ${groupSize} tasks whose title contains the provided text. They appear in alphabetical ` +
-        `order. To select one of them in order to modify it, reply with only its number (0-9). To cancel, type 'exit'.`;
-
-    if (hasMore)
-        description +=
-            "\nNot all possible options are shown in this message. To see the next batch, type 'more'.";
-
-    return embed.setDescription(description);
-}
-
 const selectPropertyMessage =
     "Select the property you want to change (0-5):\n" +
     "0️⃣ -> Title\n" +
@@ -49,13 +27,175 @@ const selectorErrorMessage =
     "4️⃣ -> Due date\n" +
     "5️⃣ -> Creation date\n";
 
-
-const filter = (msg) => message.author === msg.author;       // The bot only reacts to the original author
+let filter = null;
 const messageCollectorOptions = {
-    max: 1,        // Collect only 1 message
-    time: 30000,   // Wait for 30 s at most
+    max: 1, // Collect only 1 message
+    time: 30000, // Wait for 30 s at most
     errors: ["time"],
 };
+
+function presentOptionsAsEmbed(titleText, groupSize, hasMore) {
+    const embed = new Discord.MessageEmbed()
+        .setTitle("***Options***")
+        .setColor(0x0000ff)
+        .setTimestamp();
+
+    let description =
+        `Showing ${groupSize} tasks whose title contains the provided text. They appear in alphabetical ` +
+        `order. To select one of them in order to modify it, reply with only its number (0-9). To cancel, type 'exit'.`;
+
+    if (hasMore)
+        description +=
+            "\nNot all possible options are shown in this message. To see the next batch, type 'more'.";
+
+    return embed.setDescription(description);
+}
+
+async function requestNewData(propertyIndex, originalMessage) {
+    let requestMessage = "";
+    while (true) {
+        switch (propertyIndex) {
+            case 0: // Title
+                requestMessage = "Enter the new title.";
+                break;
+            case 1:
+                requestMessage = "Enter the new description.";
+                break;
+            case 2:
+                requestMessage =
+                    "Enter 'yes' to set the task as urgent (check). Enter 'no' to set it as non-urgent " +
+                    "(uncheck).";
+                break;
+            case 3:
+                requestMessage =
+                    "Enter the new status (already existing or not).";
+                break;
+            case 4:
+                requestMessage =
+                    "Enter the new due date in format YYYY-MM-DD. For example, 2021-04-01.";
+                break;
+            case 5:
+                requestMessage =
+                    "Enter the new creation date in format YYYY-MM-DD. For example, 2021-04-01.";
+        }
+
+        requestMessage += "\nType '!!cancel' to cancel the update.";
+        originalMessage.channel.send(requestMessage);
+
+        const [cancel, property] = await originalMessage.channel
+            .awaitMessages(filter, messageCollectorOptions)
+            .then((collected) => {
+                // Get the first message collected. In this case, that is also the only message collected.
+                unmodifiedReply = collected.first().content;
+                userReply = unmodifiedReply.toLowerCase();
+                if (userReply === "!!cancel") return [true, {}];
+
+                let property = {};
+                switch (propertyIndex) {
+                    case 0:
+                        property = {
+                            [process.env.NOTION_TASKS_ID]: {
+                                title: [
+                                    {
+                                        type: "text",
+                                        text: {
+                                            content: unmodifiedReply, // The actual title text
+                                        },
+                                    },
+                                ],
+                            },
+                        };
+                        return [false, property];
+                    case 1:
+                        property = {
+                            [process.env.NOTION_DESCRIPTION_ID]: {
+                                rich_text: [
+                                    {
+                                        type: "text",
+                                        text: {
+                                            content: unmodifiedReply, // The actual title text
+                                        },
+                                    },
+                                ],
+                            },
+                        };
+                        return [false, property];
+                    case 2:
+                        if (userReply === "yes" || userReply === "y") {
+                            property = {
+                                [process.env.NOTION_URGENT_ID]: {
+                                    checkbox: true,
+                                },
+                            };
+                            return [false, property];
+                        } else if (userReply === "no" || userReply === "n") {
+                            property = {
+                                [process.env.NOTION_URGENT_ID]: {
+                                    checkbox: false,
+                                },
+                            };
+                            return [false, property];
+                        }
+                        break;
+                    case 3:
+                        property = {
+                            [process.env.NOTION_STATUS_ID]: {
+                                select: {
+                                    // If the status specified does not exist, it is created
+                                    name: unmodifiedReply,
+                                },
+                            },
+                        };
+                        return [false, property];
+                    case 4:
+                        if (util.checkDate(userReply)) {
+                            property = {
+                                [process.env.NOTION_DUE_ID]: {
+                                    date: {
+                                        start: unmodifiedReply,
+                                    },
+                                },
+                            };
+                            return [false, property];
+                        }
+                        break;
+                    case 5:
+                        if (util.checkDate(userReply)) {
+                            property = {
+                                [process.env.NOTION_CREATION_ID]: {
+                                    date: {
+                                        start: unmodifiedReply,
+                                    },
+                                },
+                            };
+                            return [false, property];
+                        }
+                }
+
+                return [null, null];
+            })
+            .catch((collected) => {
+                originalMessage.channel.send(
+                    "Time limit (30 s) reached. The command was cancelled."
+                );
+                return [true, {}];
+            });
+
+        if (cancel !== null) return [cancel, property];
+
+        originalMessage.channel.send(
+            "I couldn't understand the format of your message."
+        );
+    }
+}
+
+function updatedTaskEmbed() {
+    return (embed = new Discord.MessageEmbed()
+        .setTitle("***Updated task***")
+        .setColor(0x0000ff)
+        .setTimestamp()
+        .setDescription("The selected task was updated."));
+}
 
 module.exports = {
     name: "modifyTask",
@@ -84,6 +224,8 @@ module.exports = {
         let selectedTask = null; // Index of the task selected to be updated
         let selectedProperty = null; // Index of the property selected to be modified
 
+        filter = (msg) => message.author === msg.author; // The bot only reacts to the original author
+
         // There are no 'arguments' per se in the initial message. With the command prompt once eliminated, the
         // remaining message conforms the search text.
         const titleText = args.join(" ");
@@ -102,7 +244,7 @@ module.exports = {
             );
 
             await optionsTasks.then((result) => {
-                advance = result.hasMore;           // Not all the tasks of the search have been shown
+                advance = result.hasMore; // Not all the tasks of the search have been shown
                 nextCursor = result.nextCursor; // Cursor pointing to the next page of the results when advance === true
 
                 // Prepare the header of the embed
@@ -137,7 +279,7 @@ module.exports = {
                             );
                         }
 
-                        if (isNumeric(userReply)) {
+                        if (util.isNumeric(userReply)) {
                             if (parseInt(userReply) < retrievedTasks.length) {
                                 selectedTask = parseInt(userReply);
                                 stopSearch = true;
@@ -153,7 +295,8 @@ module.exports = {
                             "• 0-9 -> To select one of the options previously shown.\n" +
                             "• 'cancel' -> To stop the command's execution.";
 
-                        if (advance)     // Give the option to get more results
+                        if (advance)
+                            // Give the option to get more results
                             messageRequestResend +=
                                 "\n" +
                                 "• 'next' -> To see the next batch of tasks.";
@@ -169,13 +312,13 @@ module.exports = {
             } while (!stopSearch && !stopCollector);
         } while (!stopSearch);
 
-        // The user didn't select any option (either too much time passed or the command was cancelled)
+        // The user didn't select any task (either too much time passed or the command was cancelled)
         if (selectedTask === null) return;
 
         // Show the properties of the database and ask to choose one
         message.channel.send(selectPropertyMessage);
 
-        stopCollector = false;     
+        stopCollector = false;
         do {
             await message.channel
                 .awaitMessages(filter, messageCollectorOptions)
@@ -190,7 +333,7 @@ module.exports = {
                         );
                     }
 
-                    if (isNumeric(userReply)) {
+                    if (util.isNumeric(userReply)) {
                         if (parseInt(userReply) <= 5) {
                             selectedProperty = parseInt(userReply);
                             stopCollector = true;
@@ -210,5 +353,24 @@ module.exports = {
                     );
                 });
         } while (!stopCollector);
+
+        // The user didn't select any property (either too much time passed or the command was cancelled)
+        if (selectedProperty === null) return;
+
+        const [cancel, property] = await requestNewData(selectedProperty, message).then((newData) => {return newData;});
+
+        if (cancel) return;
+
+        const updateResult = notion.updateTask(
+            retrievedTasks[selectedTask].id,
+            property
+        );
+        const finalEmbed = updatedTaskEmbed();
+        await updateResult.then(
+            (result) => {
+                finalEmbed.fields = util.taskToEmbed(result)}
+        );
+
+        message.channel.send(finalEmbed);
     },
 };

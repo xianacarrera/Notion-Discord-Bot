@@ -21,6 +21,11 @@ const aWeekFromNow = function(){
     return formatDate(todayPlusOneWeek);
 }
 
+// Check if a string is a single digit
+function isNumeric(value) {
+    return /\b([0-9])\b/.test(value);
+}
+
 const checkDate = function(date){
     // Checks format, range of the fields, leap years, etc.
 
@@ -49,20 +54,33 @@ const tasksToEmbed = function(tasks, showAsOptions = false){
 
         fields.push({
             name: taskHeader,
-            value: `• ✍️  *Description*: ${task.description}
-            • ❗ *Is urgent*: ${task.isUrgent}
-            • 📁  *Status*: ${task.status}
-            • 👁️  *Due for*: ${task.due}
-            • 🕖  *Created on*: ${task.creation}`
+            value: `• ✍️  *Description*: ${task.description !== undefined? task.description : ""}
+            • ❗ *Is urgent*: ${task.isUrgent? "yes" : "no"}
+            • 📁  *Status*: ${task.status !== undefined? task.status : ""}
+            • 👁️  *Due for*: ${task.due !== undefined? task.due : ""}
+            • 🕖  *Created on*: ${task.creation !== undefined? task.creation : ""}`
         });
     }
 
     return fields;
 }
 
+const taskToEmbed = function(task){
+    return fields = [{
+        name: `**${task.task}**`,
+        value: `• ✍️  *Description*: ${task.description !== undefined? task.description : ""}
+        • ❗ *Is urgent*: ${task.isUrgent? "yes" : "no"}
+        • 📁  *Status*: ${task.status !== undefined? task.status : ""}
+        • 👁️  *Due for*: ${task.due !== undefined? task.due : ""}
+        • 🕖  *Created on*: ${task.creation !== undefined? task.creation : ""}`
+    }];
+}
+
 module.exports = {
     currentDate,
     aWeekFromNow,
     checkDate,
-    tasksToEmbed
+    isNumeric,
+    tasksToEmbed,
+    taskToEmbed
 };

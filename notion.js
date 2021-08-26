@@ -284,7 +284,26 @@ function fromNotionObject(notionPage) {
     };
 }
 
+async function updateTask(pageId, property){
+    const result = await notion.pages.update({
+        page_id: pageId,
+        properties: property
+    });
+
+    return fromNotionObject(result);
+}
+
 getNextTasks(false, true, false, 10);
+updateTask('44af3156-a97e-48bf-a979-c5fa8bfa72d1', {[process.env.NOTION_TASKS_ID]: {
+    title: [
+        {
+            type: "text",
+            text: {
+                content: "Estoy actualizado", // The actual title text
+            },
+        },
+    ],
+}});
 
 
 module.exports = {
@@ -292,5 +311,6 @@ module.exports = {
     getNextTasks,
     getWeekTasks,
     getByTitle,
-    getByStatus
+    getByStatus,
+    updateTask
 };

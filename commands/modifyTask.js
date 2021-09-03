@@ -41,8 +41,8 @@ function presentOptionsAsEmbed(hasMore) {
         .setTimestamp();
 
     let description =
-        `Showing ${groupSize} tasks whose title contains the provided text. They appear in alphabetical ` +
-        `order. To select one of them in order to modify it, reply with only its number (0-9). To cancel, ` +
+        `Showing ${groupSize} tasks whose title contains the provided text. They appear ordered by due date. ` +
+        `To select one of them in order to modify it, reply with only its number (0-9). To cancel, ` +
         `type 'cancel'.`;
 
     if (hasMore)
@@ -211,7 +211,7 @@ module.exports = {
     usage:
         "This command uses the following structure: !modifyTask <titleText>\n" +
         "After the previous message, the bot will reply showing which tasks contain <titleText> in their title. " +
-        "The results will be ordered alphabetically by their title. 10 results will be shown at most. " +
+        "The results will be ordered alphabetically by their due date. 10 results will be shown at most. " +
         "Then, the bot will ask to choose an option",
     examples: "",
 
